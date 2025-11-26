@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<title>المحقق المالي الذكي – V38 (Ultimate) — GOLD MERGE</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;family=Tajawal:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+        /* (نسخة CSS كما كانت مع اضافة بسيطة للأزرار الجديدة) */
+        :root {
+            --primary: #4f46e5; --secondary: #0ea5e9;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --dark: #1e293b; --bg: #f1f5f9; --surface: #ffffff;
+        }
+        body { margin: 0; padding: 25px; font-family: 'Cairo', sans-serif; background: var(--bg); color: var(--dark); }
+
+        .top-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(135deg, var(--dark), #334155);
+            color: white; padding: 15px 25px; border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); margin-bottom: 25px;
+        }
+        .app-logo { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .version-badge { background: var(--warning); color: #fff; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .upload-card {
+            background: var(--surface); padding: 25px; border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+            display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: end; margin-bottom: 25px;
+        }
+        .input-group h3 { margin: 0 0 8px; font-size: 0.9rem; color: #64748b; font-weight: 700; }
+        input[type="file"] {
+            width: 100%; padding: 10px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 10px;
+            transition: 0.3s; cursor: pointer;
+        }
+        input[type="file"]:hover { border-color: var(--primary); background: #eef2ff; }
+
+        .btn-run {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; border: none; padding: 0 40px; height: 50px; border-radius: 12px;
+            font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+        .btn-run:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4); }
+
+        .btn-print-screen {
+            background: linear-gradient(135deg, #059669, #10b981); display: none;
+            color: white; border: none; padding: 8px 20px; border-radius: 8px;
+            font-weight: 700; cursor: pointer; align-items: center; gap: 8px; font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        }
+        .btn-print-screen:hover { transform: translateY(-2px); }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; display: none; }
+        .stat-card {
+            background: var(--surface); padding: 20px; border-radius: 14px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-bottom: 4px solid transparent;
+            transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-val { font-size: 1.6rem; font-weight: 800; color: var(--dark); display: block; margin-bottom: 5px; }
+        .stat-lbl { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .filter-bar { display: none; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .filter-btn {
+            background: var(--surface); border: 1px solid #e2e8f0; padding: 8px 20px; border-radius: 50px;
+            font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .filter-btn.active { background: var(--dark); color: #fff; border-color: var(--dark); transform: scale(1.05); }
+        .filter-btn.red { color: var(--danger); border-color: #fecaca; }
+        .filter-btn.red.active { background: var(--danger); color: #fff; }
+
+        .table-wrapper {
+            background: var(--surface); border-radius: 16px; overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: none;
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        thead th {
+            background: #f8fafc; color: #475569; padding: 12px; text-align: right;
+            font-weight: 700; font-size: 0.9rem; border-bottom: 2px solid #e2e8f0;
+        }
+        tbody td { padding: 2px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
+        tbody tr:hover { background: #f8fafc; }
+
+        .badge { padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        .b-ok { background: #dcfce7; color: #166534; }
+        .b-fraud { background: #fee2e2; color: #991b1b; animation: pulse 2s infinite; }
+        .b-ref { background: #eff6ff; color: #1e40af; }
+        .b-fam { background: #ccfbf1; color: #0f766e; }
+        .b-miss { background: #f3f4f6; color: #6b7280; }
+        .b-manual { background: #e6f0ff; color: #064e9b; font-weight:800; }
+
+        .diff-box { padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; text-align: center; min-width: 80px; display: inline-block; cursor:pointer; }
+        .diff-pos { background: linear-gradient(to bottom, #f0fdf4, #dcfce7); color: #15803d; border: 1px solid #86efac; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .diff-neg { background: linear-gradient(to bottom, #fef2f2, #fee2e2); color: #b91c1c; border: 1px solid #fca5a5; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .diff-zero { color: #cbd5e1; font-weight: 400; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .loader { display: none; text-align: center; padding: 40px; font-size: 1.2rem; color: var(--primary); font-weight: 700; }
+
+        @media print {
+            @page { size: A4 landscape; margin: 1mm; }
+            body { background: #fff; padding: 2px; color: #000; font-family: 'Tajawal', sans-serif; -webkit-print-color-adjust: exact; }
+            .upload-card, .btn-run, .btn-print-screen, .filter-bar, .loader, .stat-icon, .top-header, .dashboard-grid, .badge { display: none !important; }
+            
+            .table-wrapper { box-shadow: none !important; border: none !important; overflow: visible !important; border-radius: 0; width: 100%; margin: 0 auto; }
+            table { width: 100%; border: 1px solid #000; font-size: 10px; border-collapse: collapse; }
+            thead th { background: #eee !important; color: #000 !important; padding: 2px !important; border: 1px solid #000 !important; font-size: 9px; }
+            tbody td { padding: 1px 4px !important; border: 1px solid #000 !important; height: auto !important; font-size: 9px; color: #000 !important; }
+            tbody tr { break-inside: avoid; }
+            .diff-box { background: none !important; border: none !important; box-shadow: none !important; color: #000 !important; padding: 0; cursor: default; }
+            .diff-pos::before { content: '+'; }
+            .print-footer { display: flex !important; justify-content: space-between; margin-top: 30px; padding: 0 40px; }
+            .sig-line { width: 200px; border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 12px; font-weight: bold; }
+            /* Ensure all emojis/icons are removed */
+            .app-logo::before, .filter-btn::before, td:nth-child(5) .badge::before { content: normal !important; }
+        }
+        .print-footer { display: none; }
+
+        /* small controls */
+        .manual-btn { background:#064e9b;color:white;border:none;padding:6px 8px;border-radius:6px;font-weight:700;cursor:pointer; }
+        .small-muted { font-size:0.75rem;color:#64748b; }
+    
+
+/* GLASS SKY THEME */
+:root{--glass-bg: rgba(255,255,255,0.14);--glass-border: rgba(255,255,255,0.28);--accent1:#66b3ff;--accent2:#cce8ff;--text:#01243a;}
+body { background: linear-gradient(135deg,#eaf6ff 0%,#d6f0ff 50%,#eaf6ff 100%); color:var(--text); font-family: 'Cairo', sans-serif; }
+/* upload area */
+.upload-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(3,10,20,0.08);
+  display:flex;
+  gap:18px;
+  justify-content:center;
+  align-items:flex-start;
+  max-width:1200px;
+  margin: 18px auto;
+  /* Add animation to allow hiding smoothly */
+  transition: max-height 0.5s ease-out, opacity 0.4s ease-out, margin 0.5s ease-out, padding 0.5s ease-out;
+  overflow: hidden;
+}
+.upload-card.hidden {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* glass subcards */
+.glass-card { flex:1; background:var(--glass-bg); border-radius:12px; padding:14px; border:1px solid var(--glass-border); backdrop-filter: blur(30px); box-shadow: 0 6px 20px rgba(2,6,23,0.06); min-width:240px; }
+.glass-card h3{ margin:0 0 8px; color:var(--text); font-size:1rem; }
+input[type="file"] { width:100%; padding:10px; border-radius:10px; border:2px dashed rgba(1,36,58,0.06); background: rgba(255,255,255,0.85); color:var(--text); cursor:pointer; }
+
+/* run card */
+.run-card { width:60%; margin:18px auto; text-align:center; padding:18px;
+  /* Add animation to allow hiding smoothly */
+  transition: max-height 0.5s ease-out, opacity 0.4s ease-out, margin 0.5s ease-out, padding 0.5s ease-out;
+  overflow: hidden;
+}
+.run-card.hidden {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* table tweaks */
+.table-wrapper { max-width: 1200px; margin: 10px auto 80px auto; background:transparent; border-radius:10px; overflow:auto; }
+table { width:100%; border-collapse:collapse; color:var(--text); font-size:16px; }
+thead th { background: rgba(1,36,58,0.04); color: #063449; padding:8px 10px; border-bottom:1px solid rgba(1,36,58,0.05); font-weight:700; }
+tbody td { padding:2px 8px; border-bottom:1px solid rgba(1,36,58,0.03); }
+
+/* diff boxes */
+.diff-box { padding:4px 8px; border-radius:8px; font-weight:700; display:inline-block; font-size: 0.8rem; cursor:pointer; }
+.diff-pos { background: linear-gradient(180deg,#e6fff0,#d6fbe6); color:#065f46; border:1px solid rgba(16,185,129,0.12); }
+.diff-neg { background: linear-gradient(180deg,#fff5f6,#ffecec); color:#9b1c1c; border:1px solid rgba(239,68,68,0.08); }
+.diff-zero { color:#6b7280; }
+
+/* badges */
+.badge { padding:4px 8px; border-radius:8px; font-weight:700; }
+.b-ok{ background:#dcfce7;color:#064e3b;}
+.b-fraud{ background:#fee2e2;color:#7f1d1d;}
+.b-ref{ background:#e6f0ff;color:#1e40af;}
+.b-manual{ background:#dbefff;color:#034a7a;}
+
+/* manual button */
+.manual-btn{ background:transparent;border:1px solid rgba(1,36,58,0.06);padding:6px 8px;border-radius:8px;color:var(--text); cursor:pointer; }
+
+/* sticky footer */
+#ayman_footer{ position:fixed; bottom:0; left:0; width:100%; text-align:center; font-size:12px; color:#03374a; padding:6px 0; background:rgba(255,255,255,0.85); backdrop-filter:blur(4px); z-index:9999; }
+@media print{ #ayman_footer{display:none;} }
+
+</style>
+</head>
+<body>
+<div class="top-header">
+<div class="app-logo">💎 المحقق المالي الذكي <span class="version-badge">V38 Ultimate • GOLD MERGE</span></div>
+<div style="display:flex;gap:10px;align-items:center">
+<button class="btn-print-screen" id="printBtn" onclick="window.print()">🖨️ طباعة التقرير الرسمي</button>
+<button class="btn-print-screen" onclick="exportToExcel()" style="background: linear-gradient(135deg, #1d4ed8, #3b82f6); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);">📊 تصدير Excel</button>
+</div>
+</div>
+<div class="upload-card"><div class="glass-card"><div class="input-group">
+<h3>1. ملف نزيل (Guests Report)</h3>
+<input accept=".xlsx,.xls,.csv" id="nazeelFile" type="file"/>
+</div></div><div class="glass-card"><div class="input-group">
+<h3>2. ملف بوكينج (Booking Report)</h3>
+<input accept=".xlsx,.xls,.csv" id="bookingFile" type="file"/>
+</div></div></div><div class="run-card"><button class="btn-run" id="runBtn" onclick="processFiles()" style="width:36%;height:56px;font-size:1rem;border-radius:12px;background:linear-gradient(135deg,#66b3ff,#cce8ff);border:none;color:white;font-weight:800;cursor:pointer;">ابدأ التحليل 🚀</button></div>
+<div class="dashboard-grid" id="dashboard">
+<div class="stat-card blue">
+<span class="stat-val" id="kpiBook">0</span>
+<span class="stat-lbl">إجمالي بوكينج</span>
+</div>
+<div class="stat-card green">
+<span class="stat-val" id="kpiMatch">0</span>
+<span class="stat-lbl">تمت المطابقة (سليم)</span>
+</div>
+<div class="stat-card gold">
+<span class="stat-val" id="kpiSmart">0</span>
+<span class="stat-lbl">ربط عائلي/ذكي</span>
+</div>
+<div class="stat-card red">
+<span class="stat-val" id="kpiFraud">0</span>
+<span class="stat-lbl">حالات احتيال (خطر)</span>
+</div>
+<div class="stat-card">
+<span class="stat-val" id="kpiRevBook">0</span>
+<span class="stat-lbl">إيراد بوكينج</span>
+</div>
+<div class="stat-card">
+<span class="stat-val" id="kpiRevNaz">0</span>
+<span class="stat-lbl">إيراد نزيل</span>
+</div>
+<div class="stat-card">
+<span class="stat-val" id="kpiDiff">0</span>
+<span class="stat-lbl">صافي الفروقات</span>
+</div>
+<div class="stat-card" style="border-color:#64748b">
+<span class="stat-val" id="kpiMissing">0</span>
+<span class="stat-lbl">غير موجود بنزيل</span>
+</div>
+</div>
+<div class="filter-bar" id="filters">
+<button class="filter-btn active" onclick="filterTable('all', this)">📋 الكل</button>
+<button class="filter-btn red" onclick="filterTable('fraud', this)">🚨 الاحتيال المؤكد</button>
+<button class="filter-btn" onclick="filterTable('diff-pos', this)">🔺 نزيل أعلى (&#62;+10)</button>
+<button class="filter-btn red" onclick="filterTable('diff-neg', this)">🔻 بوكينج أعلى (&#60;-10)</button>
+<button class="filter-btn" onclick="filterTable('ok', this)">✅ المطابق تماماً</button>
+<button class="filter-btn" onclick="filterTable('family', this)">👨‍👩‍👧 الربط العائلي</button>
+<button class="filter-btn" onclick="filterTable('ref', this)">🔗 الربط بالمرجع</button>
+<button class="filter-btn" onclick="filterTable('missing', this)">❌ المفقود</button>
+<button class="filter-btn" onclick="filterTable('manual', this)">✍️ يدوي</button>
+</div>
+<div class="loader" id="loader">جاري معالجة البيانات بأحدث الخوارزميات...</div>
+<div class="table-wrapper" id="tableWrap">
+<table id="resTable">
+<thead>
+<tr>
+<th width="3%">#</th>
+<th width="18%">الاسم (Booking)</th>
+<th width="7%">الحالة</th>
+<th width="18%">الاسم (نزيل)</th>
+<th width="10%">طريقة الربط</th>
+<th width="9%">بوكينج (شامل)</th>
+<th width="9%">نزيل (الفعلي)</th>
+<th width="7%">الفرق</th>
+<th width="12%">الدخول</th>
+<th width="12%">الخروج</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="print-footer">
+<div class="sig-line">مدقق الحسابات</div>
+<div class="sig-line">المدير المالي</div>
+<div class="sig-line">مدير الفندق</div>
+</div>
+<script>
+/* ----------------- UTILITIES (لمسات) ----------------- */
+function safeSet(id, v){ document.getElementById(id).textContent = v; }
+function cleanPrice(v) { return parseFloat(String(v||0).replace(/[^0-9.]/g, "")) || 0; }
+function normalize(s) { return String(s||"").toLowerCase().replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/[^\w\u0600-\u06FF]/g," ").trim(); }
+function parseDate(v) {
+    if(!v && v!==0) return null;
+    if(typeof v === 'number') return new Date((v - 25569)*86400000);
+    if(typeof v === 'string') {
+        // try yyyy-mm-dd or dd-mm-yyyy
+        if(v.includes('-')) {
+            let p = v.split(' ')[0].split('-');
+            if(p[0].length===4) return new Date(p[0],p[1]-1,p[2]);
+            return new Date(p[2],p[1]-1,p[0]);
+        }
+        // try slash
+        if(v.includes('/')) {
+            let p = v.split(' ')[0].split('/');
+            if(p[0].length===4) return new Date(p[0],p[1]-1,p[2]);
+            return new Date(p[2],p[1]-1,p[0]);
+        }
+    }
+    return null;
+}
+function dayNameArabic(d) {
+    if(!d) return "غير متوفر";
+    const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    return days[d.getDay()];
+}
+function toENDateStr(d) {
+    if(!d) return "-";
+    return d.toLocaleDateString('en-GB');
+}
+
+/* skeleton helpers (كما كانت) */
+const charMap = {'a':'a','e':'a','i':'y','o':'w','u':'w','y':'y','b':'b','p':'b','t':'t','th':'t','g':'g','j':'g','h':'h','k':'k','q':'k','c':'k','d':'d','z':'z','r':'r','s':'s','x':'s','w':'w','f':'f','v':'f','l':'l','m':'m','n':'n'};
+function getSkeleton(str) {
+    str = normalize(str);
+    let res = "";
+    if(/[\u0600-\u06FF]/.test(str)) {
+        const ar = {'ا':'a','ب':'b','ت':'t','ث':'t','ج':'g','ح':'h','خ':'h','د':'d','ذ':'z','ر':'r','ز':'z','س':'s','ش':'s','ص':'s','ض':'d','ط':'t','ظ':'z','ع':'a','غ':'g','ف':'f','ق':'k','ك':'k','ل':'l','م':'m','ن':'n','ه':'h','و':'w','ي':'y'};
+        for(let c of str) if(ar[c]) res+=ar[c];
+    } else {
+        str = str.replace(/ph/g,"f").replace(/ck/g,"k");
+        for(let c of str) if(charMap[c]) res+=charMap[c]; else if(/[a-z]/.test(c) && !'aeiou'.includes(c)) res+=c;
+    }
+    return res;
+}
+function getFamilySkel(name) {
+    let p = normalize(name).split(" ").filter(x=>x.length>2);
+    return p.length ? getSkeleton(p[p.length-1]) : "";
+}
+
+/* ----------------- FILE READING (لم تلمس) ----------------- */
+async function readSheet(file) {
+    return new Promise(resolve => {
+        const r = new FileReader();
+        r.onload = e => {
+            const wb = XLSX.read(e.target.result, {type:'array'});
+            resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}));
+        };
+        r.readAsArrayBuffer(file);
+    });
+}
+function getData(raw, keys) {
+    let hRow = -1;
+    for(let i=0; i<20; i++) if(keys.every(k => JSON.stringify(raw[i]).includes(k))) { hRow=i; break; }
+    if(hRow===-1) return [];
+    let headers = raw[hRow].map(x=>String(x||"").trim());
+    return raw.slice(hRow+1).map(r => {
+        let obj={}; headers.forEach((h,i)=>obj[h]=r[i]); return obj;
+    });
+}
+
+/* ----------------- CORE LOGIC ----------------- */
+async function processFiles() {
+    const f1 = document.getElementById('nazeelFile').files[0];
+    const f2 = document.getElementById('bookingFile').files[0];
+    if(!f1 || !f2) { alert("⚠️ يرجى رفع الملفات أولاً"); return; }
+    
+    // [Fix]: Clear any previously saved manual matches to ensure a fresh session.
+    sessionStorage.removeItem('manualMatches'); 
+
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('runBtn').style.display = 'none';
+
+    try {
+        const rawN = await readSheet(f1);
+        const rawB = await readSheet(f2);
+        const nRows = getData(rawN, ["إسم العميل"]);
+        const bRows = getData(rawB, ["رقم الحجز", "السعر"]);
+        const refKey = Object.keys(nRows[0]||{}).find(k=>k.includes("مرجع")||k.includes("مصدر")) || "";
+
+        // Save to sessionStorage as convenience for next page if desired
+        try {
+            sessionStorage.setItem('nazeel_upload', JSON.stringify({booking:bRows, nazeel:nRows, refKey}));
+        } catch(e){ /* ignore */ }
+
+        runEngine(bRows, nRows, refKey);
+
+        document.getElementById('printBtn').style.display = 'flex';
+        // Hide upload area
+        document.querySelector('.upload-card').classList.add('hidden');
+        document.querySelector('.run-card').classList.add('hidden');
+
+    } catch(e) {
+        alert("خطأ: " + e.message); console.error(e);
+        document.getElementById('runBtn').style.display = 'block';
+        // Ensure upload area is visible on error
+        document.querySelector('.upload-card').classList.remove('hidden');
+        document.querySelector('.run-card').classList.remove('hidden');
+    }
+    document.getElementById('loader').style.display = 'none';
+}
+
+function runEngine(booking, nazeel, refKey) {
+    const tbody = document.querySelector('#resTable tbody');
+    tbody.innerHTML = "";
+
+    // Stats
+    // s.revB and s.revN will now only count successfully matched rows (Requirement 2)
+    let s = { book:0, match:0, fraud:0, smart:0, revB:0, revN:0, missing:0 }; 
+    let taken = new Set();
+    let takenOK = new Set(); // new: indices of nazeel matched during OK pass
+
+    // Sort: OK first, then Cancelled (To support Immunity Rule)
+    let okList = booking.filter(b=>String(b["الحالة"]||"").toLowerCase().includes("ok"));
+    let cxList = booking.filter(b=>!String(b["الحالة"]||"").toLowerCase().includes("ok"));
+
+    s.book = booking.length;
+
+    // 1. Process OK (Normal)
+    okList.forEach(b => processRow(b, nazeel, taken, refKey, false, s, takenOK));
+    // 2. Process Cancelled (Strict Fraud)
+    cxList.forEach(b => processRow(b, nazeel, taken, refKey, true, s, takenOK));
+
+    // Apply any manual matches stored in sessionStorage (they may refer to booking refs)
+    applyStoredManualMatches();
+
+    // Update Dashboard
+    safeSet('kpiBook', s.book);
+    safeSet('kpiMatch', s.match);
+    safeSet('kpiSmart', s.smart);
+    safeSet('kpiFraud', s.fraud);
+    safeSet('kpiRevBook', s.revB.toLocaleString());
+    safeSet('kpiRevNaz', s.revN.toLocaleString());
+    safeSet('kpiDiff', (s.revN - s.revB).toLocaleString());
+    safeSet('kpiMissing', s.missing);
+
+    document.getElementById('dashboard').style.display = 'grid';
+    document.getElementById('filters').style.display = 'flex';
+    document.getElementById('tableWrap').style.display = 'block';
+}
+
+function processRow(bRow, nRows, taken, refKey, strictMode, s, takenOK) {
+    const bRef = String(bRow["رقم الحجز"]||"").trim();
+    const bName = normalize(bRow["اسم الضيف\\الضيوف"] || bRow["اسم الضيف"]);
+    const bPrice = cleanPrice(bRow["السعر"]);
+    const expected = bPrice * 1.175;
+    const bDate = parseDate(bRow["تسجيل الوصول"]);
+    const status = bRow["الحالة"];
+
+    let best = null, method = "", note = "";
+
+    // Candidate Filtering
+    let candidates = nRows.map((n,i)=>({n,i})).filter(x => !taken.has(x.i));
+    if(bDate) candidates = candidates.filter(x => {
+        let nd = parseDate(x.n["تاريخ الدخول"]);
+        return !nd || Math.abs((nd-bDate)/864e5) <= 3;
+    });
+
+    // 1. Ref Match (Priority Zero) - if exists match immediately
+    if(!best && refKey && bRef.length>0) {
+        let m = candidates.find(x => {
+            try { return String(x.n[refKey]||"").includes(bRef); } catch(e){ return false; }
+        });
+        if(m) { best=m; method="🆔 مرجع"; }
+    }
+
+    // 2. Full Name match (only in non-strict)
+    if(!best && !strictMode){
+        let bp = bName.split(" ").filter(x=>x.length>1);
+        if(bp.length>=2) {
+            let bf=getSkeleton(bp[0]), bl=getSkeleton(bp[1]);
+            let m = candidates.find(x => {
+                let np = normalize(x.n["إسم العميل"]).split(" ").filter(y=>y.length>1);
+                return np.length>=2 && getSkeleton(np[0])===bf && getSkeleton(np[1])===bl;
+            });
+            if(m) { best=m; method="✨ اسم كامل"; }
+        }
+    }
+
+    // 3. Family (Skip in strict mode)
+    if(!best && !strictMode) {
+        let bFam = getFamilySkel(bName);
+        if(bFam.length>2) {
+            let m = candidates.find(x => {
+                let nFam = getFamilySkel(x.n["إسم العميل"]);
+                if(nFam!==bFam) return false;
+                let nP = cleanPrice(x.n["الايجار الكلي"]||x.n["الاجمالي"]);
+                return Math.abs(nP-expected)<50 || Math.abs(nP-bPrice)<50;
+            });
+            if(m) { best=m; method="👨‍👩‍👧 عائلي"; }
+        }
+    }
+
+    // Handle Result
+    if(best) {
+        // Immunity rule: if strictMode (cancelled) but that nazeel index already in takenOK, treat as normal match
+        if(strictMode && takenOK && takenOK.has(best.i)) {
+            strictMode = false; // demote to normal match
+        }
+
+        taken.add(best.i);
+        if(!strictMode && takenOK) takenOK.add(best.i);
+
+        let nRow = best.n;
+        let nPrice = cleanPrice(nRow["الايجار الكلي"]||nRow["الاجمالي"]);
+
+        if(strictMode) {
+            // FRAUD DETECTED
+            s.fraud++;
+            // Check for negative diff to allow manual match (Booking Price > Nazeel Price)
+            const diff = nPrice - expected;
+            const type = (diff <= -10) ? "fraud-neg" : "fraud"; // Mark fraud with negative diff > 10
+            appendRow(bName, status, nRow["إسم العميل"], "🚨 احتيال", expected, nPrice, type, nRow, bRow);
+            // NOTE: Fraud rows are NOT added to revenue totals (revB, revN).
+        } else {
+            // NORMAL MATCH (Matched rows only)
+            s.match++;
+            s.revB += expected; // KPI Update: Add Booking revenue (Matched only)
+            s.revN += nPrice;   // KPI Update: Add Nazeel revenue (Matched only)
+            if(method.includes("عائلي") || method.includes("مرجع")) s.smart++;
+            appendRow(bName, status, nRow["إسم العميل"], method, expected, nPrice, method.includes("عائلي")?"family":method.includes("مرجع")?"ref":"ok", nRow, bRow);
+        }
+    } else {
+        if(!strictMode) {
+            s.missing++;
+            // s.revB += expected; // KPI Update: REMOVED as per request. Missing rows don't count towards revenue totals.
+            appendRow(bName, status, "-", "❌ مفقود", expected, 0, "missing", null, bRow);
+        }
+    }
+}
+
+/* ----------------- ORIGINAL appendRow (مع تعديل بسيط للباجز) ----------------- */
+function appendRow(bName, status, nName, method, exp, found, type, nRow, bRow) {
+    const tbody = document.querySelector('#resTable tbody');
+    const tr = document.createElement('tr');
+
+    let diff = found - exp;
+    let diffHtml = '<span class="diff-box diff-zero">0</span>';
+    
+    // Apply new diff thresholds
+    if(diff > 10) {
+        diffHtml = `<span class="diff-box diff-pos" onclick="editDiffManually(this.closest('tr'))">+${diff.toFixed(0)}</span>`;
+    } else if(diff < -10) {
+        diffHtml = `<span class="diff-box diff-neg" onclick="editDiffManually(this.closest('tr'))">${diff.toFixed(0)}</span>`;
+    } else { 
+        diffHtml = `<span class="diff-box diff-zero">${diff.toFixed(0)}</span>`;
+    }
+
+    if(type === 'missing') diffHtml = '-';
+
+    let badgeClass = "badge";
+    if(type==='fraud' || type==='fraud-neg') badgeClass += " b-fraud";
+    else if(type==='family') badgeClass += " b-fam";
+    else if(type==='ref') badgeClass += " b-ref";
+    else if(type==='missing') badgeClass += " b-miss";
+    else if(type==="warning") badgeClass += " b-miss"; else badgeClass += " b-ok";
+
+    tr.dataset.type = type;
+    if(diff > 10) tr.dataset.diff = 'diff-pos';
+    else if(diff < -10) tr.dataset.diff = 'diff-neg';
+    else tr.dataset.diff = '';
+    
+    if(type==='fraud' || type==='fraud-neg') tr.style.background = '#fff1f2';
+    // Store original nPrice and expPrice for manual match dashboard update
+    tr.dataset.oldNPrice = found.toFixed(0); 
+    tr.dataset.expPrice = exp.toFixed(0);
+
+    tr.innerHTML = `
+        <td>${tbody.rows.length + 1}</td>
+        <td style="font-weight:700">${bName}</td>
+        <td><span style="font-size:0.75rem; background:#eee; padding:2px 5px; border-radius:4px">${status}</span></td>
+        <td>${nName}</td>
+        <td><span class="${badgeClass}">${method}</span></td>
+        <td>${exp.toFixed(0)}</td>
+        <td>${found.toFixed(0)}</td>
+        <td>${diffHtml}</td>
+    `;
+    tbody.appendChild(tr);
+}
+
+/* ----------------- WRAPPER: لتغيير الأعمدة وإضافة زر الربط وإعدادات الفرق ----------------- */
+(function(){
+    // Keep reference to original
+    const _origAppendRow = appendRow;
+
+    // Override appendRow with wrapper
+    appendRow = function(bName, status, nName, method, exp, found, type, nRow, bRow) {
+        // Call original to keep exact original behavior (and set tr.dataset.oldNPrice)
+        _origAppendRow(bName, status, nName, method, exp, found, type, nRow, bRow);
+
+        // Now extend the newest row with our 2 date columns + manual button if missing
+        const tbody = document.querySelector('#resTable tbody');
+        const tr = tbody.lastElementChild;
+        if(!tr) return;
+
+        // compute dates
+        let bEntryDate = bRow ? parseDate(bRow["تسجيل الوصول"]) : null;
+        let bExitDate = bRow ? parseDate(bRow["تاريخ المغادرة"]||bRow["تسجيل المغادرة"]) : null;
+        let nEntryDate = nRow ? parseDate(nRow["تاريخ الدخول"]) : null;
+        let nExitDate = nRow ? parseDate(nRow["تاريخ الخروج"] || nRow["تاريخ المغادرة"] || "") : null;
+
+        // ------------------- Add new cells (Merged Date Columns) -------------------
+        
+        // Entry Column (Booking (Blue) / Nazeel (Green))
+        const dateInHtml = `
+            <span style="color:#0ea5e9;font-weight:700;font-size:0.8rem">B: ${toENDateStr(bEntryDate)}</span><br>
+            <span style="color:#10b981;font-weight:700;font-size:0.8rem">N: ${toENDateStr(nEntryDate)}</span>
+        `;
+        const td_In = document.createElement('td'); td_In.innerHTML = dateInHtml; td_In.style.lineHeight = '1.2';
+        
+        // Exit Column (Booking (Blue) / Nazeel (Green))
+        const dateOutHtml = `
+            <span style="color:#0ea5e9;font-weight:700;font-size:0.8rem">B: ${toENDateStr(bExitDate)}</span><br>
+            <span style="color:#10b981;font-weight:700;font-size:0.8rem">N: ${toENDateStr(nExitDate)}</span>
+        `;
+        const td_Out = document.createElement('td'); td_Out.innerHTML = dateOutHtml; td_Out.style.lineHeight = '1.2';
+
+        // Append them (Now only two columns)
+        tr.appendChild(td_In);
+        tr.appendChild(td_Out);
+
+
+        // If missing or fraud-neg type -> add manual match button
+        if(type === 'missing' || type === 'fraud-neg') {
+            // add small manual match button inside the 'طريقة الربط' column (5th cell)
+            let methodCell = tr.querySelector('td:nth-child(5)');
+            if(methodCell) {
+                // add button
+                const btn = document.createElement('button');
+                btn.className = 'manual-btn';
+                btn.textContent = 'ربط يدوي';
+                btn.onclick = function(evt){
+                    evt.stopPropagation();
+                    openManualMatch(tr);
+                };
+                methodCell.appendChild(document.createTextNode(' '));
+                methodCell.appendChild(btn);
+            }
+        }
+
+        // Apply new diff thresholds/colors/pointers:
+        try {
+            const diffCell = tr.querySelector('td:nth-child(8)');
+            const exp = parseFloat(tr.dataset.expPrice || 0); // Get original exp
+            const found = parseFloat(tr.dataset.oldNPrice || 0); // Get original found
+            let diff = found - exp; // Actual financial difference
+            let diffToDisplay = diff;
+            
+            // *** NEW LOGIC FOR DURATION MULTIPLIER (Affects Column 8 display only) ***
+            const bookingBasePrice = exp / 1.175;
+
+            if (found > exp && bookingBasePrice > 10) {
+                const ratio = found / bookingBasePrice; 
+                const N = Math.round(ratio); // Find nearest integer multiplier (e.g., 2)
+
+                // Check if Nazeel price matches N * Booking Base Price (within 10 SAR tolerance)
+                if (N >= 2 && Math.abs(found - (N * bookingBasePrice)) <= 10) {
+                    diffToDisplay = 0; // If it's a clear multiple, set the visual difference to zero.
+                }
+            }
+            // *** END NEW LOGIC ***
+            
+            // Apply new diff thresholds (New logic: >+10 or <-10 is flagged)
+            if(diffCell) {
+                if(diffToDisplay > 10) {
+                    diffCell.innerHTML = `<span class="diff-box diff-pos" onclick="editDiffManually(this.closest('tr'))">+${diffToDisplay.toFixed(0)}</span>`;
+                    tr.dataset.diff = 'diff-pos';
+                } else if(diffToDisplay < -10) {
+                    diffCell.innerHTML = `<span class="diff-box diff-neg" onclick="editDiffManually(this.closest('tr'))">${diffToDisplay.toFixed(0)}</span>`;
+                    tr.dataset.diff = 'diff-neg';
+                } else { // +- 10 is considered zero/neutral
+                    diffCell.innerHTML = `<span class="diff-box diff-zero">${diffToDisplay.toFixed(0)}</span>`;
+                    tr.dataset.diff = '';
+                }
+            }
+            
+            // For 'ref' method change label to show icon
+            const methodCell = tr.querySelector('td:nth-child(5) .badge');
+            if(methodCell && methodCell.textContent.includes('مرجع')) {
+                methodCell.textContent = '🆔 مرجع';
+                methodCell.classList.remove('b-ref'); methodCell.classList.add('b-ref');
+            }
+        } catch(e){ console.error(e); }
+    };
+})();
+
+/* ----------------- Manual Matching Handlers ----------------- */
+
+// New function for direct editing of the diff cell (Modifies Booking Price)
+async function editDiffManually(tr) {
+    const isManual = tr.dataset.type === 'manual';
+    if(isManual) {
+        alert("⚠️ لا يمكن التعديل المباشر على الفرق بعد الربط اليدوي. استخدم الربط اليدوي مجدداً إذا كنت بحاجة لتغيير القيمة.");
+        return;
+    }
+
+    const bookingName = tr.querySelector('td:nth-child(2)').innerText.trim();
+    // Khala 6 is Booking (Expected) price
+    const bookingCell = tr.querySelector('td:nth-child(6)');
+    const oldBooking = parseFloat(bookingCell.textContent.replace(/,/g,'')||'0');
+    // Khala 7 is Nazeel (Found) price (This will remain constant for this operation)
+    const nazeelPrice = parseFloat(tr.querySelector('td:nth-child(7)').textContent.replace(/,/g,'')||'0');
+
+    let manualPriceInput = await sweetPrompt(
+        "تعديل فرق البوكينج اليدوي",
+        "أدخل قيمة بوكينج (شامل) الجديدة للصف:\n" + bookingName, 
+        oldBooking.toFixed(0)
+    );
+    if(manualPriceInput === null) return;
+    
+    const newBookingPrice = cleanPrice(manualPriceInput);
+    const oldBookingPrice = oldBooking; // Keep track of the old price for KPI update
+    
+    // 1. Update visual Booking price
+    bookingCell.textContent = newBookingPrice.toFixed(0);
+
+    // 2. Re-calculate difference and update display
+    const newDiff = nazeelPrice - newBookingPrice;
+    const diffCell = tr.querySelector('td:nth-child(8)');
+    
+    if (diffCell) {
+        if(newDiff > 10) {
+            diffCell.innerHTML = `<span class="diff-box diff-pos" onclick="editDiffManually(this.closest('tr'))">+${newDiff.toFixed(0)}</span>`;
+            tr.dataset.diff = 'diff-pos';
+        } else if(newDiff < -10) {
+            diffCell.innerHTML = `<span class="diff-box diff-neg" onclick="editDiffManually(this.closest('tr'))">${newDiff.toFixed(0)}</span>`;
+            tr.dataset.diff = 'diff-neg';
+        } else { // +- 10 is considered zero/neutral
+            diffCell.innerHTML = `<span class="diff-box diff-zero">${newDiff.toFixed(0)}</span>`;
+            tr.dataset.diff = '';
+        }
+    }
+
+    // 3. Update dashboard stats (KPIs)
+    try {
+        const kpiRevB = +document.getElementById('kpiRevBook').textContent.replace(/,/g,'') || 0;
+        
+        // Update Revenue Booking (Subtract old price, add new price)
+        const newRevB = kpiRevB - oldBookingPrice + newBookingPrice;
+        
+        safeSet('kpiRevBook', newRevB.toLocaleString());
+        const kpiRevN = +document.getElementById('kpiRevNaz').textContent.replace(/,/g,'') || 0;
+        safeSet('kpiDiff', (kpiRevN - newRevB).toLocaleString()); // Diff is Nazeel - Booking
+
+    } catch(e){ console.error("Error updating diff dashboard stats:", e); }
+    
+    alert('تم تحديث قيمة بوكينج والفرق يدوياً.');
+}
+
+
+function applyManualMatch(tr, manualName, manualPrice) {
+    const bookingName = tr.querySelector('td:nth-child(2)').innerText.trim();
+    const expValNow = parseFloat(tr.querySelector('td:nth-child(6)').textContent.replace(/,/g,''))||0;
+    const isMissing = tr.dataset.type === 'missing';
+    const isFraudNeg = tr.dataset.type === 'fraud-neg';
+    const wasManual = tr.dataset.type === 'manual';
+    const oldNPrice = parseFloat(tr.dataset.oldNPrice || '0');
+
+    // 1. Save to session (Note: The clear is done in processFiles() now)
+    let mm = { bookingName, manualName, manualPrice, expVal: expValNow, timestamp: Date.now() };
+    let arr = [];
+    try { arr = JSON.parse(sessionStorage.getItem('manualMatches') || '[]'); } catch(e){}
+    // Remove old match for the same booking name before pushing new one
+    arr = arr.filter(item => item.bookingName !== bookingName);
+    arr.push(mm);
+    sessionStorage.setItem('manualMatches', JSON.stringify(arr));
+
+    // 2. Apply visually
+    tr.querySelector('td:nth-child(4)').textContent = manualName;
+    let methodCell = tr.querySelector('td:nth-child(5)');
+    let badgeSpan = methodCell.querySelector('.badge');
+    if(badgeSpan) { badgeSpan.textContent = 'يدوي ✔️'; badgeSpan.className = 'badge b-manual'; }
+    const foundCell = tr.querySelector('td:nth-child(7)');
+    if(foundCell) foundCell.textContent = manualPrice.toFixed(0);
+    
+    // 3. Update Diff (uses new +-10 threshold)
+    const diff = manualPrice - expValNow;
+    const diffCell = tr.querySelector('td:nth-child(8)');
+    if(diffCell) {
+        if(diff > 10) diffCell.innerHTML = `<span class="diff-box diff-pos" onclick="editDiffManually(this.closest('tr'))">+${diff.toFixed(0)}</span>`;
+        else if(diff < -10) diffCell.innerHTML = `<span class="diff-box diff-neg" onclick="editDiffManually(this.closest('tr'))">${diff.toFixed(0)}</span>`;
+        else diffCell.innerHTML = `<span class="diff-box diff-zero">${diff.toFixed(0)}</span>`;
+    }
+    tr.dataset.type = 'manual';
+    if(diff > 10) tr.dataset.diff = 'diff-pos';
+    else if(diff < -10) tr.dataset.diff = 'diff-neg';
+    else tr.dataset.diff = '';
+    
+    // 5. Hide Manual Button
+    const btn = methodCell.querySelector('.manual-btn');
+    if(btn) btn.style.display = 'none';
+
+    // 4. Update Dashboard Stats
+    if(isMissing || isFraudNeg || !wasManual) {
+        try {
+            const kpiMatch = +document.getElementById('kpiMatch').textContent || 0;
+            const kpiMissing = +document.getElementById('kpiMissing').textContent || 0;
+            const kpiFraud = +document.getElementById('kpiFraud').textContent || 0;
+            const kpiRevN = +document.getElementById('kpiRevNaz').textContent.replace(/,/g,'') || 0;
+
+            if (isMissing) {
+                document.getElementById('kpiMatch').textContent = kpiMatch + 1;
+                document.getElementById('kpiMissing').textContent = kpiMissing - 1;
+            } else if (isFraudNeg) {
+                document.getElementById('kpiMatch').textContent = kpiMatch + 1;
+                document.getElementById('kpiFraud').textContent = kpiFraud - 1;
+            }
+
+            let newRevN = kpiRevN;
+            if (isMissing) {
+                 newRevN += manualPrice;
+            } else if (isFraudNeg || wasManual) {
+                 newRevN = kpiRevN - oldNPrice + manualPrice;
+            }
+            
+            safeSet('kpiRevNaz', newRevN.toLocaleString());
+            const kpiRevB = +document.getElementById('kpiRevBook').textContent.replace(/,/g,'') || 0;
+            safeSet('kpiDiff', (newRevN - kpiRevB).toLocaleString());
+
+        } catch(e){ console.error("Error updating manual match dashboard stats:", e); }
+    }
+    
+    alert('تم الحفظ كربط يدوي ✔️ وتم تحديث الصف.');
+}
+
+
+function openManualMatch(tr){
+ (async ()=>{
+   // check if the row is already a normal match (ok, ref, family). only allow missing/fraud-neg
+   if(tr.dataset.type === 'ok' || tr.dataset.type === 'ref' || tr.dataset.type === 'family' || tr.dataset.type === 'manual') {
+        alert("⚠️ لا يمكن تطبيق الربط اليدوي على صفوف تمت مطابقتها تلقائياً بنجاح أو تم ربطها يدوياً بالفعل.");
+        return;
+   }
+
+   const bookingName = tr.querySelector('td:nth-child(2)').innerText.trim();
+   const expText = tr.querySelector('td:nth-child(6)').textContent.replace(/,/g,'')||'0';
+   const expVal = parseFloat(expText)||0;
+
+   // Use the new sweetPrompt
+   let manualName = await sweetPrompt("مطابقة يدوية","أدخل اسم النزيل لمطابقة يدوية لـ:", bookingName);
+   if(!manualName) return;
+
+   let manualPriceInput = await sweetPrompt("السعر اليدوي","أدخل سعر النزيل (الفعلي) (المتوقع: " + expVal.toFixed(0) + ")","");
+   if(manualPriceInput === null) return;
+   
+   // Clean manual price before passing
+   const manualPrice = cleanPrice(manualPriceInput);
+
+   // Trigger manual match logic
+   applyManualMatch(tr, manualName, manualPrice);
+ })();
+}
+
+function applyStoredManualMatches() {
+    try {
+        const arr = JSON.parse(sessionStorage.getItem('manualMatches')||'[]');
+        if(!arr || !arr.length) return;
+        const tbody = document.querySelector('#resTable tbody');
+        arr.forEach(mm => {
+            for(let tr of tbody.rows) {
+                const bName = tr.querySelector('td:nth-child(2)').textContent;
+                // Only match if it's the right name AND it's a row that was originally un-matched or fraud-neg or empty
+                if(bName === mm.bookingName && (tr.dataset.type === 'missing' || tr.dataset.type==='fraud-neg' || tr.dataset.type==='')) {
+                    applyManualMatch(tr, mm.manualName, mm.manualPrice);
+                    break;
+                }
+            }
+        });
+    } catch(e){}
+}
+
+/* ----------------- FILTERS ----------------- */
+function filterTable(type, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('tbody tr').forEach(tr => {
+        const foundVal = parseFloat(tr.querySelector('td:nth-child(7)').textContent.replace(/,/g,''))||0;
+        const expVal = parseFloat(tr.querySelector('td:nth-child(6)').textContent.replace(/,/g,''))||0;
+        const diff = foundVal - expVal;
+        
+        if(type==='all') tr.style.display='';
+        else if(type==='diff-pos') tr.style.display = (diff > 10)?'':'none';
+        else if(type==='diff-neg') tr.style.display = (diff < -10)?'':'none';
+        else tr.style.display = tr.dataset.type===type?'':'none';
+    });
+}
+
+/* ----------------- EXCEL EXPORT ----------------- */
+function exportToExcel() {
+    const table = document.getElementById('resTable');
+    let rows = [];
+
+    // Get table headers (excluding first column '#')
+    let headers = Array.from(table.tHead.rows[0].cells).map(th => th.textContent.trim());
+    
+    // Add all rows
+    Array.from(table.tBodies[0].rows).forEach(tr => {
+        // Skip hidden rows
+        if(tr.style.display === 'none') return;
+        
+        let row = [];
+        // Iterate through all cells
+        Array.from(tr.cells).forEach((td, index) => {
+            // Exclude the '#' column
+            if(index === 0) return; 
+
+            let value = td.textContent.trim();
+            // Remove the button text "ربط يدوي" if present for cleaner output
+            if(td.querySelector('.manual-btn')) {
+                value = value.replace('ربط يدوي', '').trim();
+            }
+            
+            // Clean up diff values (+XXX, -XXX, 0)
+            if(index === 7) { // Diff column
+                 value = value.replace('+', '').trim();
+                 if (td.querySelector('.diff-zero')) { value = '0'; }
+            }
+            
+            // Extract the simple content of the cell
+            row.push(value);
+        });
+        rows.push(row);
+    });
+    
+    // Combine headers and data
+    const finalData = [headers.slice(1)].concat(rows.map(r => r.slice(0))); // Exclude the '#' header and value from all rows
+
+    const ws = XLSX.utils.aoa_to_sheet(finalData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "تقرير الفحص");
+    XLSX.writeFile(wb, "GOLD_MERGE_Report_" + new Date().toISOString().split('T')[0] + ".xlsx");
+}
+
+/* ----------------- Session helpers ----------------- */
+function clearSession(){
+    if(confirm('مسح بيانات الجلسة (manualMatches و nazeel_upload)؟')) {
+        sessionStorage.removeItem('manualMatches');
+        sessionStorage.removeItem('nazeel_upload');
+        alert('تم المسح.');
+    }
+}
+
+/* ----------------- ON LOAD: check sessionStorage for upload data ----------------- */
+window.addEventListener('DOMContentLoaded', function(){
+    // Clear the session upload data to ensure a fresh start as requested
+    sessionStorage.removeItem('nazeel_upload');
+});
+
+</script>
+<div id="ayman_footer">تم التنفيذ بواسطة أيمن أبو ورده | 77aayy@gmail.com</div>
+<div id="customModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.25);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;">
+<div style="background:rgba(255,255,255,0.9);padding:22px 26px;border-radius:16px;min-width:380px;box-shadow:0 6px 20px rgba(0,0,0,0.12);color:#01243a;font-family:'Cairo';">
+<h3 id="modalTitle" style="margin:0 0 10px;font-weight:800;">العنوان</h3>
+<p id="modalMsg" style="margin:0 0 14px;font-size:15px;">النص</p>
+<input id="modalInput" style="width:100%;padding:10px;font-size:15px;border-radius:8px;
+        border:1px solid #c7dbe9;margin-bottom:14px;"/>
+<div style="text-align:left;">
+<button id="modalOk" style="padding:9px 18px;border:none;background:#6ab8ff;color:white;border-radius:10px;font-weight:700;margin-left:6px;cursor:pointer;transition:0.2s;">حسناً</button>
+<button id="modalCancel" style="padding:9px 18px;border:none;background:#eef5fa;color:#01243a;border-radius:10px;font-weight:700;cursor:pointer;transition:0.2s;">إلغاء</button>
+</div>
+</div>
+</div>
+
+
+<script>
+// ===== Custom Glass Sky Modal =====
+function sweetPrompt(title, message, defaultValue=""){
+ return new Promise(resolve=>{
+   const modal=document.getElementById("customModal");
+   const t=document.getElementById("modalTitle");
+   const m=document.getElementById("modalMsg");
+   const i=document.getElementById("modalInput");
+   const ok=document.getElementById("modalOk");
+   const cancel=document.getElementById("modalCancel");
+
+   t.textContent=title;
+   m.textContent=message;
+   i.value=defaultValue;
+
+   modal.style.display="flex";
+   i.focus();
+
+   ok.onclick=()=>{ modal.style.display="none"; resolve(i.value); };
+   cancel.onclick=()=>{ modal.style.display="none"; resolve(null); };
+ });
+}
+
+// ===== openManualMatch (Wrapped function outside IIFE for access) =====
+// The actual logic is inside the global openManualMatch function now
+</script>
+</body>
+</html>
