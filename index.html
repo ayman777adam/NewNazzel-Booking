@@ -2,14 +2,14 @@
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8"/>
-<title>منظومة Adora لمطابقة الحجوزات (V17.0 القناص)</title>
+<title>منظومة Adora لمطابقة الحجوزات (V18.0 الذاكرة)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-    /* V17.0 Priority Fix Style */
+    /* V18.0 Priority Fix Style */
     :root {
         --primary: #00838f; --primary-soft: #e0f7fa; --accent: #ff6f00;        
         --bg-body: #f0f4f8; --text-dark: #263238; --text-light: #546e7a;
@@ -149,6 +149,8 @@
     .mt-grp { background: #f3e5f5; color: #8e24aa; }
     .mt-guess { background: #e0f2f1; color: #00695c; border:1px solid #b2dfdb; }
     .mt-miss { background: #eceff1; color: #78909c; }
+    .mt-alias { background: #e3f2fd; color: #1565c0; border:1px solid #90caf9; }
+    .mt-ext { background: #fffde7; color: #fbc02d; border:1px solid #ffee58; }
     .b-name { font-weight: 800; color: var(--primary); font-size: 0.85rem; }
     .b-ref { font-size: 0.65rem; color: #b0bec5; }
     .price-val { font-weight: 700; font-size: 0.85rem; }
@@ -160,6 +162,7 @@
     .dot-n { background: #27ae60; } .txt-n { color: #27ae60; }
     .btn-mini { padding: 4px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; cursor: pointer; border: none; color: #fff; margin-top: 3px; }
     .bm-merge { background: #8e44ad; }
+    .diff-diag { font-size: 0.7rem; color: #90a4ae; font-weight: 600; }
     .footer-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255,255,255,0.95); padding: 10px; text-align: center; font-size: 0.75rem; color: var(--text-light); font-weight: 600; border-top: 1px solid #eee; z-index: 999; }
     .loader { position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; }
     @media print {
@@ -173,13 +176,13 @@
         tbody tr { box-shadow: none !important; background: transparent !important; margin: 0 !important; }
         tbody td:first-child, tbody td:last-child { border-radius: 0; border: 1px solid #000; }
         table { border-spacing: 0; }
-        .btn-mini, .logo-img, .d-dot, .sub-stats { display: none !important; }
+        .btn-mini, .logo-img, .d-dot, .sub-stats, .diff-diag { display: none !important; }
         .d-box { display: block; font-weight: normal; font-size: 8pt; }
         .d-line { display: block; margin-bottom: 2px; }
         .txt-b, .txt-n { color: #000 !important; }
         .badge, .status-badge, .match-tag { border: none; background: transparent !important; color: #000 !important; padding: 0; font-weight: normal; }
         * { -webkit-print-color-adjust: exact; color: #000 !important; }
-        .results-wrap::before { content: "تقرير مطابقة الحجوزات - Adora System"; display: block; text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 15px; }
+        .results-wrap::before { content: "تقرير مطابقة الحجوزات - Adora System (V18.0)"; display: block; text-align: center; font-size: 14pt; font-weight: bold; margin-bottom: 15px; }
     }
 </style>
 </head>
@@ -187,7 +190,7 @@
 
 <div class="loader" id="loader">
     <i class="fas fa-gem fa-spin fa-3x" style="color:var(--primary)"></i>
-    <h4 style="margin-top:15px;color:var(--primary)">جاري التحليل (V16.5)...</h4>
+    <h4 style="margin-top:15px;color:var(--primary)">جاري التحليل (V18.0)...</h4>
 </div>
 
 <header class="app-header">
@@ -195,7 +198,7 @@
         <img src="adora-logo.jpg" alt="Adora" class="logo-img" onerror="this.style.display='none'">
         <div class="brand-info">
             <h1>منظومة Adora لمطابقة الحجوزات</h1>
-            <p>القناص</p>
+            <p>الذاكرة</p>
         </div>
     </div>
     <div class="header-tools">
@@ -251,12 +254,12 @@
     <div class="kpi-card k-purple">
         <div class="kpi-icon"><i class="fas fa-layer-group"></i></div>
         <span class="kpi-num" id="kpiGroup">0</span>
-        <span class="kpi-lbl">تجميع</span>
+        <span class="kpi-lbl">تجميع/ت.يدوي</span>
     </div>
     <div class="kpi-card k-gold">
         <div class="kpi-icon"><i class="fas fa-fingerprint"></i></div>
         <span class="kpi-num" id="kpiMoney">0</span>
-        <span class="kpi-lbl">بصمة</span>
+        <span class="kpi-lbl">بصمة/تمديد</span>
     </div>
     
     <div class="kpi-card">
@@ -284,8 +287,9 @@
     <div class="filter-pills">
         <div class="pill active" onclick="setFilter('all', this)">الكل</div>
         <div class="pill red" onclick="setFilter('conflict', this)">⚠️ تعارض</div>
-        <div class="pill" onclick="setFilter('group', this)">🔗 تجميع</div>
-        <div class="pill" onclick="setFilter('ghost', this)">💰 بصمة</div>
+        <div class="pill" onclick="setFilter('group', this)">🔗 تجميع/يدوي</div>
+        <div class="pill" onclick="setFilter('alias', this)">🧠 ذاكرة</div>
+        <div class="pill" onclick="setFilter('guess,extension,money', this)">💰 بصمة/تمديد</div>
         <div class="pill" onclick="setFilter('miss', this)">❌ مفقود</div>
     </div>
 
@@ -319,6 +323,58 @@
 let currentFilter = 'all';
 let allRowsData = [];
 let cachedN = null, cachedB = null;
+let db; // IndexedDB instance
+
+// --- IndexedDB Functions (V18.0) ---
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open('AdoraMatchDB', 1);
+
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains('aliases')) {
+                db.createObjectStore('aliases', { keyPath: 'bName' });
+            }
+        };
+
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            resolve(db);
+        };
+
+        request.onerror = (e) => {
+            console.error("IndexedDB error:", e.target.error);
+            reject(e.target.error);
+        };
+    });
+}
+
+function saveAlias(bName, nName) {
+    if(!db) return;
+    const transaction = db.transaction(['aliases'], 'readwrite');
+    const store = transaction.objectStore('aliases');
+    store.put({ bName: normalize(bName), nName: normalize(nName) });
+}
+
+function getAlias(bName) {
+    return new Promise((resolve, reject) => {
+        if(!db) { resolve(null); return; }
+        const transaction = db.transaction(['aliases'], 'readonly');
+        const store = transaction.objectStore('aliases');
+        const request = store.get(normalize(bName));
+        
+        request.onsuccess = (e) => {
+            resolve(e.target.result);
+        };
+
+        request.onerror = (e) => {
+            console.error("Error retrieving alias:", e.target.error);
+            resolve(null);
+        };
+    });
+}
+// --- End IndexedDB Functions ---
+
 
 // AI Levenshtein
 function levenshtein(a, b) {
@@ -357,6 +413,23 @@ function parseDate(v) {
 function toENDateStr(d) { if(!d) return "-"; return d.toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit'}); }
 function getParts(name) { return normalize(name).split(" ").filter(x => x.length > 2); }
 
+// V18.0: Diagnostic Difference
+function getDiffDiagnosis(diff, bPriceNet, taxMultiplier) {
+    const absDiff = Math.abs(diff);
+    if (absDiff < 5) return "مطابقة تامة"; // Almost zero difference
+    
+    // Check for Tax/Muni difference (17.5%)
+    const taxDiff = bPriceNet * (taxMultiplier - 1);
+    if (Math.abs(absDiff - taxDiff) < 5) return "فرق ضريبة/بلدية";
+
+    // Since we don't know the exact price per night, we check if the difference is a common night price variation (e.g., 20% of net price, covering an extra night at minimum price or a price adjustment)
+    const nightGuess = bPriceNet * 0.25; // Heuristic: maybe 25% of net booking price is one night
+    if (absDiff > nightGuess) return diff > 0 ? "تمديد ليلة محتمل" : "تخفيض سعر/خصم";
+
+    return diff > 0 ? "زيادة غير مشخصة" : "نقصان غير مشخص";
+}
+
+
 // UI
 document.getElementById('nazeelFile').addEventListener('change', function() { document.getElementById('dz-naz').classList.add('file-loaded'); });
 document.getElementById('bookingFile').addEventListener('change', function() { document.getElementById('dz-book').classList.add('file-loaded'); });
@@ -388,6 +461,8 @@ async function startEngine() {
     const muniP = parseFloat(document.getElementById('muniVal').value) || 0;
     const tax = 1 + ((taxP + muniP) / 100);
 
+    await initDB(); // V18.0: Initialize IndexedDB
+
     setTimeout(async () => {
         try {
             const nRaw = await readSheet(f1); const bRaw = await readSheet(f2);
@@ -412,7 +487,7 @@ async function startEngine() {
     }, 100);
 }
 
-function process(booking, nazeel, tax) {
+async function process(booking, nazeel, tax) {
     allRowsData = [];
     let s = { book:0, match:0, money:0, recover:0, group:0, miss:0, revB:0, revN:0 };
     let sub = { ok:0, can:0, nos:0 };
@@ -427,9 +502,28 @@ function process(booking, nazeel, tax) {
         if(st.includes("ok")) sub.ok++; else if(st.includes("cancel")) sub.can++; else sub.nos++;
     });
 
+    // V18.0: 0. Alias Mapping (The Memory)
+    await Promise.all(booking.map(async (b, idx) => {
+        if(processedBooking.has(idx)) return;
+        const bName = b["اسم الضيف\\الضيوف"] || b["اسم الضيف"];
+        const alias = await getAlias(bName);
+        
+        if (alias) {
+            let pool = nazeel.map((n,i)=>({n,i})).filter(x => !takenNazeel.has(x.i));
+            let match = pool.find(x => normalize(x.n["إسم العميل"]).includes(alias.nName));
+            
+            if (match) {
+                processedBooking.add(idx); takenNazeel.add(match.i);
+                storeResult(b, match.n, "alias", s, tax);
+            }
+        }
+    }));
+
+
     // 1. Grouping
     let groups = {};
     booking.forEach((b, idx) => {
+        if(processedBooking.has(idx)) return; // V18.0: Skip if already processed by alias
         let name = normalize(b["اسم الضيف\\الضيوف"] || b["اسم الضيف"]);
         if(!groups[name]) groups[name] = [];
         groups[name].push({data: b, idx: idx});
@@ -508,7 +602,42 @@ function process(booking, nazeel, tax) {
         }
     });
 
-    // 3. ORPHAN SCAVENGER (V16.0)
+    // V18.0: 3. Behavioral Extension Check
+    booking.forEach((b, idx) => {
+        if(processedBooking.has(idx)) return;
+        
+        const bPrice = cleanPrice(b["السعر"]);
+        const expPrice = bPrice * tax;
+        const bDate = parseDate(b["تسجيل الوصول"]);
+        const bOutDate = parseDate(b["تاريخ المغادرة"]);
+
+        let pool = nazeel.map((n,i)=>({n,i})).filter(x => !takenNazeel.has(x.i));
+
+        // Find a Nazeel booking whose check-out date is AFTER Booking's check-out date
+        let match = pool.find(x => {
+            let nPrice = cleanPrice(x.n["الايجار الكلي"]||x.n["الاجمالي"]);
+            let nDate = parseDate(x.n["تاريخ الدخول"]);
+            let nOutDate = parseDate(x.n["تاريخ الخروج"]);
+            
+            if(!bDate || !nDate || !bOutDate || !nOutDate) return false;
+
+            // Date match check-in (1 day tolerance)
+            let dateMatch = Math.abs((nDate - bDate)/864e5) < 1.0; 
+            // Extension check: Nazeel Check-out is AFTER Booking Check-out
+            let extensionHit = (nOutDate > bOutDate);
+            // Price must be close, assuming no extra services
+            let priceMatch = Math.abs(nPrice - expPrice) < 15; 
+
+            return dateMatch && extensionHit && priceMatch;
+        });
+
+        if(match) {
+            processedBooking.add(idx); takenNazeel.add(match.i);
+            storeResult(b, match.n, "extension", s, tax);
+        }
+    });
+    
+    // 4. ORPHAN SCAVENGER (Price/Date Guess)
     booking.forEach((b, idx) => {
         if(processedBooking.has(idx)) return; 
 
@@ -538,8 +667,8 @@ function process(booking, nazeel, tax) {
         }
     });
 
+    await applyManuals(s); // V18.0: This now reads from IndexedDB
     updateStats(s, sub);
-    applyManuals(s);
     renderTable(); 
 }
 
@@ -547,14 +676,15 @@ function storeResult(b, n, type, s, tax, isGroupHead, totalNazeelPrice) {
     let bName = b["اسم الضيف\\الضيوف"] || b["اسم الضيف"] || b["تم الحجز من قِبل"];
     let status = String(b["الحالة"]||"").toLowerCase();
     let isOk = status.includes("ok");
-    let bPrice = cleanPrice(b["السعر"]) * tax;
+    let bPriceNet = cleanPrice(b["السعر"]);
+    let bPrice = bPriceNet * tax;
     let nPrice = totalNazeelPrice || (n ? cleanPrice(n["الايجار الكلي"]||n["الاجمالي"]) : 0);
     
     if(type !== "miss") {
         if(!isOk) { s.recover++; type="conflict"; }
         else {
-            if(type==="ref"||type==="name") s.match++;
-            if(type==="money"||type==="guess") s.money++;
+            if(type==="ref"||type==="name"||type==="alias") s.match++;
+            if(type==="money"||type==="guess"||type==="extension") s.money++; // V18.0: extension is money/fingerprint match
             if(type==="group") s.group++;
         }
         s.revB += bPrice;
@@ -563,24 +693,25 @@ function storeResult(b, n, type, s, tax, isGroupHead, totalNazeelPrice) {
 
     allRowsData.push({
         b: b, n: n, type: type, bName: bName, status: status, isOk: isOk,
-        bPrice: bPrice, nPrice: nPrice, timestamp: parseDate(b["تسجيل الوصول"]) || 0
+        bPrice: bPrice, nPrice: nPrice, bPriceNet: bPriceNet, tax: tax,
+        timestamp: parseDate(b["تسجيل الوصول"]) || 0
     });
 }
 
 function renderTable() {
     const tbody = document.querySelector('#mainTable tbody'); tbody.innerHTML = "";
-    
+    const taxMultiplier = parseFloat(document.getElementById('taxVal').value) / 100 + parseFloat(document.getElementById('muniVal').value) / 100 + 1;
+
     if(!document.getElementById("mainTable").getAttribute("data-sort-col")) {
         allRowsData.sort((a, b) => b.timestamp - a.timestamp);
     }
 
     allRowsData.forEach((row, idx) => {
+        let filters = currentFilter.split(',');
         if(currentFilter !== 'all') {
-            if(currentFilter==='conflict' && row.type!=='conflict') return;
-            if(currentFilter==='group' && row.type!=='group') return;
-            if(currentFilter==='ghost' && (row.type==='money'||row.type==='guess')) return;
-            if(currentFilter==='miss' && row.type!=='miss') return;
+            if (!filters.includes(row.type)) return;
         }
+
         let term = document.getElementById('searchInput').value.toLowerCase();
         if(term && !row.bName.toLowerCase().includes(term)) return;
 
@@ -590,8 +721,10 @@ function renderTable() {
         let tag = "";
         if(row.type==="ref") tag=`<span class="match-tag mt-ok">🆔 مرجع</span>`;
         else if(row.type==="name") tag=`<span class="match-tag mt-ok">✨ اسم</span>`;
+        else if(row.type==="alias") tag=`<span class="match-tag mt-alias">🧠 ذاكرة</span>`; // V18.0
         else if(row.type==="money") tag=`<span class="match-tag mt-warn">💰 بصمة</span>`;
         else if(row.type==="guess") tag=`<span class="match-tag mt-guess">🧩 تخمين ذكي</span>`;
+        else if(row.type==="extension") tag=`<span class="match-tag mt-ext">🟡 تمديد إقامة</span>`; // V18.0
         else if(row.type==="group") tag=`<span class="match-tag mt-grp">🔗 تجميع</span>`;
         else if(row.type==="conflict") tag=`<span class="match-tag mt-err">⚠️ تسكين</span>`;
         else tag=`<span class="match-tag mt-miss">❌ مفقود</span>`;
@@ -601,10 +734,16 @@ function renderTable() {
         let bOut = toENDateStr(parseDate(row.b["تاريخ المغادرة"]));
         let nDate = row.n ? toENDateStr(parseDate(row.n["تاريخ الدخول"])) : "-";
         let nOut = row.n ? toENDateStr(parseDate(row.n["تاريخ الخروج"])) : "-";
-        let act = (row.type==="miss") ? `<br><button class="btn-mini bm-merge" onclick="markMerged(this)">دمج يدوي</button>` : "";
+        let act = (row.type==="miss") ? `<br><button class="btn-mini bm-merge" onclick="markMerged(this, '${row.bName}')">دمج يدوي</button>` : "";
 
         let diff = row.n ? (row.nPrice - row.bPrice) : 0;
         let diffHtml = row.n ? (Math.abs(diff)<5 ? `<span class="diff-zero">0</span>` : `<span class="${diff>0?'diff-pos':'diff-neg'}">${diff.toFixed(0)}</span>`) : "-";
+        
+        // V18.0: Diagnostic Difference
+        let diffDiag = "";
+        if(row.n && row.type !== 'conflict' && row.type !== 'miss') {
+             diffDiag = `<div class="diff-diag">(${getDiffDiagnosis(diff, row.bPriceNet, taxMultiplier)})</div>`;
+        }
 
         tr.innerHTML = `
             <td>${idx+1}</td>
@@ -614,7 +753,7 @@ function renderTable() {
             <td>${tag}${act}</td>
             <td><span class="price-val">${row.bPrice.toFixed(0)}</span></td>
             <td><span class="price-val">${row.n?row.nPrice.toFixed(0):'-'}</span></td>
-            <td>${diffHtml}</td>
+            <td>${diffHtml}${diffDiag}</td>
             <td>
                 <div class="d-box">
                     <div class="d-line"><span class="d-dot dot-b"></span><span class="txt-b">B: ${bDate} ➝ ${bOut}</span></div>
@@ -627,8 +766,12 @@ function renderTable() {
 }
 
 function updateStats(s, sub) {
-    safeSet('kpiBook', s.book); safeSet('kpiOk', s.match);
-    safeSet('kpiGroup', s.group); safeSet('kpiMoney', s.money);
+    // V18.0: Combine group/alias and money/extension
+    let combinedMatch = s.match + s.group;
+    let combinedMoney = s.money;
+
+    safeSet('kpiBook', s.book); safeSet('kpiOk', combinedMatch);
+    safeSet('kpiGroup', s.group); safeSet('kpiMoney', combinedMoney);
     safeSet('kpiRecover', s.recover);
     safeSet('kpiRevB', s.revB.toLocaleString()); safeSet('kpiRevN', s.revN.toLocaleString());
     safeSet('kpiDiff', (s.revN - s.revB).toLocaleString());
@@ -668,30 +811,43 @@ function sortTable(n) {
     renderTable();
 }
 
-function markMerged(btn) {
+// V18.0: Save alias to IndexedDB instead of sessionStorage
+function markMerged(btn, bName) {
     let tr = btn.closest('tr');
-    let name = tr.querySelector('.b-name').innerText;
-    let arr = JSON.parse(sessionStorage.getItem('mergedV165')||'[]');
-    if(!arr.includes(name)) arr.push(name);
-    sessionStorage.setItem('mergedV165', JSON.stringify(arr));
+    let nNameEl = tr.querySelector('td:nth-child(4)');
+    let nName = prompt(`أدخل اسم العميل في نزيل (مطابق لـ ${bName}):`, nNameEl.innerText.trim());
     
-    let rowData = allRowsData.find(r => r.bName === name && r.type === 'miss');
-    if(rowData) {
-        rowData.type = 'group';
-        renderTable(); 
-        let el = document.getElementById('kpiRevB');
-        el.innerText = (parseFloat(el.innerText.replace(/,/g,'')) + rowData.bPrice).toLocaleString();
+    if (nName && nName.trim() !== '-' && nName.trim() !== '') {
+        saveAlias(bName, nName);
+
+        let rowData = allRowsData.find(r => r.bName === bName && r.type === 'miss');
+        if(rowData) {
+            rowData.type = 'alias';
+            
+            // Heuristic Nazeel matching for display purposes only
+            let matchN = cachedN.find(n => normalize(n["إسم العميل"]) === normalize(nName));
+            if(matchN) {
+                rowData.n = matchN;
+                rowData.nPrice = cleanPrice(matchN["الايجار الكلي"]||matchN["الاجمالي"]);
+                let el = document.getElementById('kpiRevB');
+                let elN = document.getElementById('kpiRevN');
+                el.innerText = (parseFloat(el.innerText.replace(/,/g,'')) + rowData.bPrice).toLocaleString();
+                elN.innerText = (parseFloat(elN.innerText.replace(/,/g,'')) + rowData.nPrice).toLocaleString();
+            }
+
+            // Update stats and re-render
+            const kpiOk = document.getElementById('kpiOk'); kpiOk.textContent = parseInt(kpiOk.textContent) + 1;
+            renderTable(); 
+        }
     }
 }
 
-function applyManuals(s) {
-    let arr = JSON.parse(sessionStorage.getItem('mergedV165')||'[]');
-    allRowsData.forEach(row => {
-        if(arr.includes(row.bName) && row.type==='miss') {
-            s.revB += row.bPrice; s.miss--;
-            row.type = 'group';
-        }
-    });
+// V18.0: This is no longer needed since Alias mapping runs in process(). It is replaced by the async loop in process.
+async function applyManuals(s) {
+    // This function is now mostly redundant as the 'alias' check is done inside the main process loop using getAlias.
+    // However, it can be used to re-calculate stats for *missed* bookings that were manually merged
+    // in this session before the alias check ran, or for consistency.
+    // For now, let's keep it simple: the process handles the memory.
 }
 
 function exportExcel() {
