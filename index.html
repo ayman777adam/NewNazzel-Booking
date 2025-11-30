@@ -332,19 +332,61 @@ function getData(raw, keys) {
 async function processFiles() {
     const f1 = document.getElementById('nazeelFile').files[0];
     const f2 = document.getElementById('bookingFile').files[0];
-    if(!f1 || !f2) { alert("⚠️ يرجى رفع الملفات أولاً"); return; }
-    
-    sessionStorage.removeItem('manualMatches'); 
+    if (!f1 || !f2) { 
+        alert("⚠️ يرجى رفع الملفات أولاً"); 
+        return; 
+    }
+
+    sessionStorage.removeItem('manualMatches');
     document.getElementById('loader').style.display = 'block';
     document.getElementById('runBtn').style.display = 'none';
 
     try {
+
         const rawN = await readSheet(f1);
         const rawB = await readSheet(f2);
-        const nRows = getData(rawN, ["إسم العميل"]);
-        const bRows = getData(rawB, ["رقم الحجز", "السعر"]);
-        const refKey = Object.keys(nRows[0]||{}).find(k=>k.includes("مرجع")||k.includes("مصدر")) || "";
 
+        const nRows = getData(rawN, ["إسم العميل"]);
+        let bRows = getData(rawB, ["رقم الحجز", "السعر"]);
+
+        const refKey = Object.keys(nRows[0] || {})
+            .find(k => k.includes("مرجع") || k.includes("مصدر")) || "";
+
+        /* استخراج الفترة من أعلى تقرير نزيل (أول 14 صف فقط) */
+        let periodFrom = null;
+        let periodTo   = null;
+
+        for (let i = 0; i < 14; i++) {
+            for (let j = 0; j < 60; j++) {
+                const v = rawN[i][j];
+                if (typeof v === "string" && /\d{1,2}\/\d{1,2}\/\d{4}/.test(v)) {
+                    let d = parseDate(v);
+                    if (d) {
+                        if (!periodFrom) periodFrom = d;
+                        else if (!periodTo) periodTo = d;
+                    }
+                }
+            }
+        }
+
+        /* ترتيب التاريخين (الأصغر = من ، الأكبر = إلى) */
+        if (periodFrom && periodTo) {
+            if (periodFrom > periodTo) {
+                let t = periodFrom;
+                periodFrom = periodTo;
+                periodTo = t;
+            }
+        }
+
+        /* فلترة حجوزات بوكينج بناءً على تداخل تاريخ الوصول/المغادرة */
+        bRows = bRows.filter(b => {
+            const bIn  = parseDate(b["تسجيل الوصول"]);
+            const bOut = parseDate(b["تسجيل المغادرة"]);
+            if (!bIn || !bOut || !periodFrom || !periodTo) return true;
+            return (bIn <= periodTo) && (bOut >= periodFrom);
+        });
+
+        /* تشغيل المحرك بعد الفلترة */
         runEngine(bRows, nRows, refKey);
 
         document.getElementById('printBtn').style.display = 'flex';
@@ -352,12 +394,15 @@ async function processFiles() {
         document.querySelector('.upload-card').classList.add('hidden');
         document.querySelector('.run-card').classList.add('hidden');
 
-    } catch(e) {
-        alert("خطأ: " + e.message); console.error(e);
+    } catch (e) {
+        alert("خطأ: " + e.message);
+        console.error(e);
         document.getElementById('runBtn').style.display = 'block';
     }
+
     document.getElementById('loader').style.display = 'none';
 }
+
 
 function runEngine(booking, nazeel, refKey) {
     const tbody = document.querySelector('#resTable tbody'); tbody.innerHTML = "";
