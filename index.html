@@ -2,14 +2,14 @@
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8"/>
-<title>منظومة Adora لمطابقة الحجوزات (القناص)</title>
+<title>منظومة Adora لمطابقة الحجوزات (V17.0 القناص)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
-    /* ADORA V16.5 THEME */
+    /* V17.0 Priority Fix Style */
     :root {
         --primary: #00838f; --primary-soft: #e0f7fa; --accent: #ff6f00;        
         --bg-body: #f0f4f8; --text-dark: #263238; --text-light: #546e7a;
@@ -21,7 +21,7 @@
         --grad-err: linear-gradient(135deg, #eb3349, #f45c43);
         --grad-purple: linear-gradient(135deg, #8e2de2, #4a00e0);
     }
-    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; outline: none; }
     body { 
         margin: 0; padding: 0 0 60px 0; font-family: 'Tajawal', sans-serif; 
         color: var(--text-dark); background-color: var(--bg-body);
@@ -132,7 +132,7 @@
         text-align: right; font-weight: 700; font-size: 0.75rem; border: none;
         cursor: pointer; user-select: none;
     }
-    tbody tr { background: #fff; box-shadow: var(--shadow-card); transition: transform 0.2s; }
+    tbody tr { background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: transform 0.2s; }
     tbody tr:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.06); }
     tbody td {
         padding: 12px 15px; border-top: 1px solid #eee; border-bottom: 1px solid #eee;
@@ -162,10 +162,6 @@
     .bm-merge { background: #8e44ad; }
     .footer-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255,255,255,0.95); padding: 10px; text-align: center; font-size: 0.75rem; color: var(--text-light); font-weight: 600; border-top: 1px solid #eee; z-index: 999; }
     .loader { position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; }
-    @keyframes loadLine { 0% { width: 0; } 100% { width: 100%; } }
-    @keyframes slideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-
     @media print {
         body { background: #fff; color: #000; font-size: 9pt; }
         .app-header, .hero-card, .filter-pills, .search-box, .footer-bar, .control-panel, .dashboard { display: none !important; }
@@ -397,6 +393,7 @@ async function startEngine() {
             const nRaw = await readSheet(f1); const bRaw = await readSheet(f2);
             cachedN = getData(nRaw, ["إسم العميل"]); 
             let tempB = getData(bRaw, ["رقم الحجز", "السعر"]);
+
             let minD = null, maxD = null;
             cachedN.forEach(r => { let d = parseDate(r["تاريخ الدخول"]); if(d) { if(!minD || d<minD) minD=d; if(!maxD || d>maxD) maxD=d; } });
             if(minD && maxD) {
@@ -430,7 +427,7 @@ function process(booking, nazeel, tax) {
         if(st.includes("ok")) sub.ok++; else if(st.includes("cancel")) sub.can++; else sub.nos++;
     });
 
-    // 1. GROUPING
+    // 1. Grouping
     let groups = {};
     booking.forEach((b, idx) => {
         let name = normalize(b["اسم الضيف\\الضيوف"] || b["اسم الضيف"]);
@@ -460,7 +457,7 @@ function process(booking, nazeel, tax) {
         }
     }
 
-    // 2. WATERFALL
+    // 2. Waterfall (Individual)
     booking.forEach((b, idx) => {
         if(processedBooking.has(idx)) return;
         const bRef = String(b["رقم الحجز"]||"").trim();
@@ -472,46 +469,20 @@ function process(booking, nazeel, tax) {
         let pool = nazeel.map((n,i)=>({n,i})).filter(x => !takenNazeel.has(x.i));
         let match = null, type = "";
 
-        // 2.1 REF (Fixed Multi-Ref Logic)
+        // Ref
         if(refKey && bRef) {
-            // Find ALL invoices with this ID
             let refMatches = pool.filter(x => String(x.n[refKey]||"").includes(bRef));
-            
             if(refMatches.length > 0) {
-                // Sum them up if multiple
                 let totalNazeelPrice = refMatches.reduce((sum, m) => sum + cleanPrice(m.n["الايجار الكلي"]||m.n["الاجمالي"]), 0);
-                
-                // Create a synthetic match object
                 let firstMatch = refMatches[0];
-                
-                // Mark all as taken
                 refMatches.forEach(m => takenNazeel.add(m.i));
                 processedBooking.add(idx);
-                
-                // Custom Store Result for Multi-Ref
-                let nName = firstMatch.n["إسم العميل"];
-                if(refMatches.length > 1) nName += ` (+${refMatches.length-1} فواتير)`;
-                
-                let status = String(b["الحالة"]||"").toLowerCase();
-                let isOk = status.includes("ok");
-                
-                if(!isOk) { s.recover++; type="conflict"; }
-                else { s.match++; type="ref"; }
-                
-                s.revB += expPrice;
-                s.revN += totalNazeelPrice;
-                
-                allRowsData.push({
-                    b: b, n: firstMatch.n, type: type, 
-                    bName: bName, status: status, isOk: isOk,
-                    bPrice: expPrice, nPrice: totalNazeelPrice, 
-                    timestamp: parseDate(b["تسجيل الوصول"]) || 0
-                });
-                return; // Exit iteration for this booking
+                storeResult(b, firstMatch.n, "ref", s, tax, false, totalNazeelPrice);
+                return;
             }
         }
 
-        // 2.2 AI Name
+        // Name
         if(!match) {
             let bParts = getParts(bName);
             match = pool.find(x => {
@@ -531,25 +502,13 @@ function process(booking, nazeel, tax) {
             if(match) type = "name";
         }
 
-        // 2.3 Ghost
-        if(!match) {
-            match = pool.find(x => {
-                let nPrice = cleanPrice(x.n["الايجار الكلي"]||x.n["الاجمالي"]);
-                let nDate = parseDate(x.n["تاريخ الدخول"]);
-                let priceHit = Math.abs(nPrice - expPrice) <= 5;
-                let dateHit = bDate && nDate && Math.abs((nDate - bDate)/864e5) <= 1.5;
-                return priceHit && dateHit;
-            });
-            if(match) type = "money";
-        }
-
         if(match) {
             processedBooking.add(idx); takenNazeel.add(match.i);
             storeResult(b, match.n, type, s, tax);
         }
     });
 
-    // 3. ORPHAN SCAVENGER (V15.2)
+    // 3. ORPHAN SCAVENGER (V16.0)
     booking.forEach((b, idx) => {
         if(processedBooking.has(idx)) return; 
 
@@ -566,8 +525,7 @@ function process(booking, nazeel, tax) {
 
             let dateMatch = Math.abs((nDate - bDate)/864e5) < 1.0; 
             let priceDiff = Math.abs(nPrice - expPrice);
-            // Wider tolerance for Orphans (20 SAR)
-            let priceMatch = (priceDiff <= 20) || (priceDiff <= expPrice * 0.05);
+            let priceMatch = (priceDiff <= 3.0); 
 
             return dateMatch && priceMatch;
         });
@@ -585,12 +543,12 @@ function process(booking, nazeel, tax) {
     renderTable(); 
 }
 
-function storeResult(b, n, type, s, tax, isGroupHead) {
-    let bName = b["اسم الضيف\\الضيوف"] || b["اسم الضيف"];
+function storeResult(b, n, type, s, tax, isGroupHead, totalNazeelPrice) {
+    let bName = b["اسم الضيف\\الضيوف"] || b["اسم الضيف"] || b["تم الحجز من قِبل"];
     let status = String(b["الحالة"]||"").toLowerCase();
     let isOk = status.includes("ok");
     let bPrice = cleanPrice(b["السعر"]) * tax;
-    let nPrice = n ? cleanPrice(n["الايجار الكلي"]||n["الاجمالي"]) : 0;
+    let nPrice = totalNazeelPrice || (n ? cleanPrice(n["الايجار الكلي"]||n["الاجمالي"]) : 0);
     
     if(type !== "miss") {
         if(!isOk) { s.recover++; type="conflict"; }
